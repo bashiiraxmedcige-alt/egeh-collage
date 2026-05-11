@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cige College - Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --primary: #002b5c; --gold: #f39c12; --bg: #f0f4f8; --white: #ffffff; --red: #e74c3c; --green: #27ae60; --finance-color: #2c3e50; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; }
+        .sidebar { width: 250px; height: 100vh; background: var(--primary); color: white; position: fixed; z-index: 1001; transition: 0.3s; overflow-y: auto; left: 0; }
+        .sidebar h2 { text-align: center; padding: 20px; border-bottom: 1px solid #1a4d80; margin: 0; }
+        .menu-item { padding: 15px 25px; cursor: pointer; transition: 0.3s; border-left: 4px solid transparent; display: block; }
+        .menu-item:hover, .active { background: rgba(255,255,255,0.1); border-left: 4px solid var(--gold); }
+        .main-content { margin-left: 250px; padding: 20px; width: calc(100% - 250px); min-height: 100vh; transition: 0.3s; }
+        .mobile-header { display: none; background: var(--primary); color: white; padding: 15px; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1002; }
+        .section { display: none; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid var(--primary); }
+        .section.active { display: block; }
+        .dash-card { background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .role-icon { font-size: 60px; margin-bottom: 15px; display: block; }
+        .dash-banner { width: 100%; height: 250px; border-radius: 12px; object-fit: cover; margin-top: 20px; background: #eee; }
+        .table-container { width: 100%; margin-top: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 800px; } 
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        th { background: #f8f9fa; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        input, select, button { padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; width: auto; min-width: 150px; }
+        .finance-input, .balance-input, .grade-input { width: 100%; min-width: 60px; padding: 8px; border: 1px solid #ccc; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        #loginOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(0, 43, 92, 0.9), rgba(0, 43, 92, 0.9)), url('https://images.unsplash.com/photo-1523050853063-bd8012fbb72a?auto=format&fit=crop&q=80'); background-size: cover; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
+        .overlay-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .overlay-bg.show { display: block; }
+        @media (max-width: 992px) { .sidebar { left: -250px; } .sidebar.open { left: 0; } .main-content { margin-left: 0; width: 100%; } .mobile-header { display: flex; } .grid-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-header">
+        <button onclick="toggleMenu()" style="background:none; font-size: 24px; min-width: auto;">☰</button>
+        <h3 style="margin:0;">CIGE PRO</h3>
+        <div style="width: 30px;"></div>
+    </div>
+
+    <div class="overlay-bg" id="overlay" onclick="toggleMenu()"></div>
+
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h1 style="color: var(--primary); margin: 0; font-size: 28px;">CIGE COLLEGE</h1>
+            <p style="color: var(--gold); font-weight: bold; margin-bottom: 25px;">Management System</p>
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label style="font-size: 12px; font-weight: bold; color: #666;">DOORO XILKAAGA</label>
+                <select id="userRole">
+                    <option value="admin">Maamule (Admin)</option>
+                    <option value="teacher">Macalin (Teacher)</option>
+                    <option value="finance">Lacagaha (Finance)</option>
+                    <option value="exam">Imtixaanka (Exam Officer)</option>
+                </select>
+            </div>
+            <div style="text-align: left; margin-bottom: 20px;">
+                <label style="font-size: 12px; font-weight: bold; color: #666;">GELI PIN-KA</label>
+                <input type="password" id="userPin" placeholder="****" style="text-align:center; font-size:24px; letter-spacing: 8px;">
+            </div>
+            <button onclick="checkLogin()" style="background: var(--primary); width:100%; padding:15px; border-radius: 30px; font-size: 16px;">GELI SYSTEM-KA</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div style="padding: 20px; text-align: center;">
+            <h2 style="border:none; color: var(--gold); margin: 0;">CIGE PRO</h2>
+            <small>Integrated Education Tool</small>
+        </div>
+        <div class="menu-item active nav-dash" onclick="handleMenuClick('dash')">🏠 Dashboard</div>
+        <div class="menu-item nav-reg" onclick="handleMenuClick('reg')">👥 Registration</div>
+        <div class="menu-item nav-att" onclick="handleMenuClick('att')">📅 Attendance</div>
+        <div class="menu-item nav-exam" onclick="handleMenuClick('exam')">📝 Exam Section</div>
+        <div class="menu-item nav-finance" onclick="handleMenuClick('finance')">💰 Finance</div>
+        <div class="menu-item nav-report" onclick="handleMenuClick('report')">📊 Reports</div>
+        <div class="menu-item nav-archive" onclick="handleMenuClick('archive')">📦 Archive</div>
+        <div class="menu-item" onclick="location.reload()" style="margin-top: 30px; background: rgba(231, 76, 60, 0.2); color: #ff7675;">🚪 Logout</div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div id="dash" class="section active">
+            <div class="dash-card">
+                <span id="roleIcon" class="role-icon">👤</span>
+                <h1 id="welcomeTitle" style="color: var(--primary); margin: 5px 0;">Soo Dhawaw</h1>
+                <p id="roleDesc" style="color: #666; font-size: 18px;"></p>
+                <div id="dashImageContainer"></div>
+            </div>
+        </div>
+
+        <div id="reg" class="section">
+            <h2>Diiwaangelinta Arday Cusub</h2>
+            <div class="grid-2" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <input type="text" id="sName" placeholder="Magaca oo Dhammaystiran">
+                <input type="text" id="sID" placeholder="ID Number">
+                <input type="number" id="sPhone" placeholder="Tel Waalidka">
+                <select id="sClass">
+                    <option>F1-A</option><option>F1-B</option>
+                    <option>F2-A</option><option>F2-B</option>
+                    <option>F3-A</option><option>F3-B</option>
+                    <option>F4-A</option><option>F4-B</option>
+                </select>
+            </div>
+            <button onclick="saveStudent()" style="margin-top: 15px; padding: 15px 40px;">Kaydi Ardayga</button>
+            <div class="table-container">
+                <table id="regTable">
+                    <thead><tr><th>ID No</th><th>Magaca Ardayga</th><th>Fasalka</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="att" class="section">
+            <h2>Xaadiriska</h2>
+            <select id="attFilter" onchange="renderAll()" style="max-width:300px">
+                <option value="All">Dhammaan Ardayda</option>
+                <option>F1-A</option><option>F1-B</option>
+                <option>F2-A</option><option>F2-B</option>
+                <option>F3-A</option><option>F3-B</option>
+                <option>F4-A</option><option>F4-B</option>
+            </select>
+            <div class="table-container">
+                <table id="attendanceTable">
+                    <thead><tr><th>ID</th><th>Magaca</th><th>Fasalka</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button onclick="sendAttendance()" style="background: var(--green); margin-top: 20px;">Gudbi Xaadiriska</button>
+        </div>
+
+        <div id="exam" class="section">
+            <h2>Natiijada Imtixaanka</h2>
+            <select id="examFilter" onchange="renderAll()" style="max-width:300px">
+                <option value="All">Dooro Fasalka...</option>
+                <option>F1-A</option><option>F1-B</option>
+                <option>F2-A</option><option>F2-B</option>
+                <option>F3-A</option><option>F3-B</option>
+                <option>F4-A</option><option>F4-B</option>
+            </select>
+            <div class="table-container" id="examExportArea">
+                <table id="examTable">
+                    <thead>
+                        <tr style="background: var(--primary); color: white;">
+                            <th>Magaca Ardayga</th><th>Phy</th><th>Mat</th><th>Bio</th><th>Geo</th><th>Som</th><th>Eng</th><th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button onclick="archiveResults()" style="background: var(--green); margin-top: 25px;">KAYDI & SOO SAAR PDF</button>
+        </div>
+
+        <div id="finance" class="section">
+            <h2>Maamulka Lacagaha (Finance)</h2>
+            <div class="grid-2" style="background: #eee; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <input type="text" id="financeSearch" onkeyup="renderFinance()" placeholder="Raadi Magaca/ID...">
+                <select id="financeFilter" onchange="renderFinance()">
+                    <option value="All">Dhammaan Fasallada</option>
+                    <option>F1-A</option><option>F1-B</option>
+                    <option>F2-A</option><option>F2-B</option>
+                    <option>F3-A</option><option>F3-B</option>
+                    <option>F4-A</option><option>F4-B</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="financeTable">
+                    <thead>
+                        <tr style="background: var(--primary); color: white;">
+                            <th>ID</th><th>Magaca</th><th>Tel</th><th>Fasalka</th><th>Bixiyey ($)</th><th>Baqiga ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="report" class="section">
+            <h2>Warbixinta Maqnaanshaha</h2>
+            <button onclick="clearReports()" style="background:var(--red); margin-bottom: 15px;">Tirtir Dhammaan</button>
+            <div id="absentList"></div>
+        </div>
+        
+        <div id="archive" class="section">
+            <h2>📦 Kaydka Natiijooyinka</h2>
+            <div id="archiveContent"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // 1. FIREBASE CONFIG (Ku beddel xogtaada)
+        const firebaseConfig = {
+    apiKey: "AIzaSy...", // Midkan waxaad ka helaysaa Project Settings
+    authDomain: "jama-45b2a.firebaseapp.com",
+    databaseURL: "https://jama-45b2a-default-rtdb.firebaseio.com", // Kani waa koodhkii aad hadda soo qaadday
+    projectId: "jama-45b2a",
+    storageBucket: "jama-45b2a.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+};
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Variables
+        let students = [];
+        let reports = [];
+        let archives = [];
+        let loginAttempts = parseInt(localStorage.getItem('cige_attempts')) || 0;
+        let lockTime = localStorage.getItem('cige_lock_time') || null;
+
+        const roleData = {
+            admin: { icon: "🏛️", desc: "Maamulaha Guud ee System-ka", img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800" },
+            teacher: { icon: "👨‍🏫", desc: "Dashboard-ka Macalimiinta", img: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800" },
+            finance: { icon: "💰", desc: "Xafiiska Lacagaha & Maaliyadda", img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800" },
+            exam: { icon: "📝", desc: "Xafiiska Imtixaanaadka & Natiijooyinka", img: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800" }
+        };
+
+        // UI Functions
+        window.toggleMenu = () => {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        };
+
+        window.handleMenuClick = (id) => {
+            showTab(id);
+            if (window.innerWidth <= 992) toggleMenu();
+        };
+
+        const showTab = (id) => {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            const activeMenu = document.querySelector(`.nav-${id}`);
+            if(activeMenu) activeMenu.classList.add('active');
+        };
+
+        // Real-time Data Sync
+        onValue(ref(db, 'students'), (snap) => {
+            const val = snap.val();
+            students = val ? Object.values(val) : [];
+            renderAll();
+            renderFinance();
+        });
+
+        onValue(ref(db, 'reports'), (snap) => {
+            const val = snap.val();
+            reports = val ? Object.values(val) : [];
+            renderReports();
+        });
+
+        onValue(ref(db, 'archives'), (snap) => {
+            const val = snap.val();
+            archives = val ? Object.values(val) : [];
+            renderArchive();
+        });
+
+        // Core Functions
+        window.checkLogin = () => {
+            const role = document.getElementById('userRole').value;
+            const pin = document.getElementById('userPin').value;
+            const menuItems = document.querySelectorAll('.sidebar .menu-item');
+            const currentTime = new Date().getTime();
+
+            if (lockTime && currentTime < lockTime) {
+                let remaining = Math.ceil((lockTime - currentTime) / 60000);
+                alert(`System-ka waa lagaa xidhay! Sug ${remaining} daqiiqo.`); return;
+            }
+
+            if ((role === "admin" && pin === "7777") || (role === "teacher" && pin === "1111") || 
+                (role === "finance" && pin === "5555") || (role === "exam" && pin === "3333")) {
+                
+                loginAttempts = 0; localStorage.removeItem('cige_lock_time');
+                document.getElementById('loginOverlay').style.display = "none";
+                const data = roleData[role];
+                document.getElementById('roleIcon').innerText = data.icon;
+                document.getElementById('welcomeTitle').innerText = "Ku soo dhawaw, " + role.toUpperCase();
+                document.getElementById('roleDesc').innerText = data.desc;
+                document.getElementById('dashImageContainer').innerHTML = `<img src="${data.img}" class="dash-banner">`;
+
+                menuItems.forEach(item => item.style.display = "none");
+                document.querySelector('.nav-dash').style.display = "block";
+                menuItems[menuItems.length - 1].style.display = "block";
+
+                if (role === 'admin') menuItems.forEach(item => item.style.display = "block");
+                else if (role === 'teacher') { document.querySelector('.nav-att').style.display = "block"; showTab('att'); }
+                else if (role === 'finance') { document.querySelector('.nav-finance').style.display = "block"; showTab('finance'); }
+                else if (role === 'exam') { 
+                    document.querySelector('.nav-exam').style.display = "block"; 
+                    document.querySelector('.nav-archive').style.display = "block"; showTab('exam'); 
+                }
+            } else {
+                loginAttempts++;
+                if (loginAttempts >= 4) {
+                    lockTime = currentTime + (5 * 60 * 1000);
+                    localStorage.setItem('cige_lock_time', lockTime);
+                    alert("4 jeer ayaad khaldantay! System-ka waa xidhan yahay 5 daqiiqo.");
+                } else alert(`PIN khaldan! ${4 - loginAttempts} isku-day ayaa kuu hadhay.`);
+            }
+        };
+
+        window.saveStudent = () => {
+            let name = document.getElementById('sName').value;
+            let id = document.getElementById('sID').value;
+            let cls = document.getElementById('sClass').value;
+            let phone = document.getElementById('sPhone').value;
+            if(!name || !id) return alert("Buuxi Magaca iyo ID!");
+            
+            set(ref(db, 'students/' + id), { 
+                id, name, cls, phone, paid: 0, bal: 0, 
+                grades: { phy:0, mat:0, bio:0, geo:0, som:0, eng:0 } 
+            });
+            document.getElementById('sName').value = ''; document.getElementById('sID').value = '';
+        };
+
+        window.renderAll = () => {
+            const attF = document.getElementById('attFilter').value;
+            const exF = document.getElementById('examFilter').value;
+            
+            document.querySelector('#regTable tbody').innerHTML = students.map(s => `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.cls}</td><td><button onclick="deleteS('${s.id}')" style="background:red; min-width:auto; padding:5px 10px;">X</button></td></tr>`).join('');
+            
+            document.querySelector('#attendanceTable tbody').innerHTML = students.filter(s => attF === "All" || s.cls === attF).map(s => `
+                <tr data-id="${s.id}" data-name="${s.name}" data-cls="${s.cls}">
+                    <td>${s.id}</td><td>${s.name}</td><td>${s.cls}</td>
+                    <td><select class="att-status"><option value="Jooga">Jooga</option><option value="Maqan">Maqan</option></select></td>
+                </tr>`).join('');
+                
+            document.querySelector('#examTable tbody').innerHTML = students.filter(s => exF === "All" || s.cls === exF).map((s) => {
+                let g = s.grades;
+                let total = Object.values(g).reduce((a, b) => a + (parseInt(b) || 0), 0);
+                return `<tr><td>${s.name}</td>
+                    <td><input type="number" class="grade-input" value="${g.phy}" onchange="updateGrade('${s.id}','phy',this.value)"></td>
+                    <td><input type="number" class="grade-input" value="${g.mat}" onchange="updateGrade('${s.id}','mat',this.value)"></td>
+                    <td><input type="number" class="grade-input" value="${g.bio}" onchange="updateGrade('${s.id}','bio',this.value)"></td>
+                    <td><input type="number" class="grade-input" value="${g.geo}" onchange="updateGrade('${s.id}','geo',this.value)"></td>
+                    <td><input type="number" class="grade-input" value="${g.som}" onchange="updateGrade('${s.id}','som',this.value)"></td>
+                    <td><input type="number" class="grade-input" value="${g.eng}" onchange="updateGrade('${s.id}','eng',this.value)"></td>
+                    <td style="color:var(--primary)"><b>${total}</b></td></tr>`;
+            }).join('');
+        };
+
+        window.renderFinance = () => {
+            const search = document.getElementById('financeSearch').value.toLowerCase();
+            const filter = document.getElementById('financeFilter').value;
+            const filtered = students.filter(s => (s.name.toLowerCase().includes(search) || s.id.includes(search)) && (filter === "All" || s.cls === filter));
+            document.querySelector('#financeTable tbody').innerHTML = filtered.map(s => `
+                <tr><td>${s.id}</td><td>${s.name}</td><td>${s.phone || '-'}</td><td>${s.cls}</td>
+                <td><input type="number" class="finance-input" value="${s.paid || 0}" onchange="updateFinance('${s.id}', 'paid', this.value)"></td>
+                <td><input type="number" class="balance-input" value="${s.bal || 0}" onchange="updateFinance('${s.id}', 'bal', this.value)"></td></tr>`).join('');
+        };
+
+        window.updateFinance = (id, key, val) => set(ref(db, `students/${id}/${key}`), parseInt(val) || 0);
+        window.updateGrade = (id, sub, v) => set(ref(db, `students/${id}/grades/${sub}`), parseInt(v) || 0);
+
+        window.sendAttendance = () => {
+            const rows = document.querySelectorAll('#attendanceTable tbody tr');
+            rows.forEach(row => {
+                if(row.querySelector('.att-status').value === "Maqan") {
+                    push(ref(db, 'reports'), { name: row.dataset.name, cls: row.dataset.cls, date: new Date().toLocaleDateString('so-SO') });
+                }
+            });
+            alert("Xaadiriska waa la gudbiyey!");
+        };
+
+        window.archiveResults = () => {
+            const exF = document.getElementById('examFilter').value;
+            if(exF === "All") return alert("Dooro fasal!");
+            html2pdf().from(document.getElementById('examExportArea')).save(`Natiijada_${exF}.pdf`);
+            push(ref(db, 'archives'), { className: exF, date: new Date().toLocaleString('so-SO'), results: students.filter(s => s.cls === exF) });
+            showTab('archive');
+        };
+
+        window.renderArchive = () => {
+            document.getElementById('archiveContent').innerHTML = archives.map((arc, i) => `
+                <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #ddd;">
+                    <h3>${arc.className} - ${arc.date}</h3>
+                    <table style="min-width:100%">${arc.results.map(s => `<tr><td>${s.name}</td><td>Total: ${Object.values(s.grades).reduce((a,b)=>a+b,0)}</td></tr>`).join('')}</table>
+                </div>`).reverse().join('');
+        };
+
+        window.renderReports = () => {
+            document.getElementById('absentList').innerHTML = reports.map(r => `<div style="background:#fff5f5; padding:10px; margin-bottom:5px; border-radius:5px;">🔴 <b>${r.name}</b> (${r.cls}) - ${r.date}</div>`).reverse().join('');
+        };
+
+        window.deleteS = (id) => { if(confirm("Ma hubtaa?")) remove(ref(db, 'students/' + id)); };
+        window.clearReports = () => { if(confirm("Ma tirtiraysaa dhammaan?")) remove(ref(db, 'reports')); };
+    </script>
+</body>
+</html>
